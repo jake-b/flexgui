@@ -1,7 +1,7 @@
 from math import sqrt
 
 from PyQt6.QtGui import QTextCursor, QTextBlockFormat, QColor, QAction
-from PyQt6.QtWidgets import QLCDNumber, QAbstractSpinBox, QCheckBox, QSlider
+from PyQt6.QtWidgets import QLCDNumber, QAbstractSpinBox, QCheckBox, QSlider, QFrame
 
 import linuxcnc as emc
 import hal
@@ -523,6 +523,11 @@ def update(parent):
 		state = hal.get_value(f'flexhal.{value}')
 		if isinstance(getattr(parent, key), QLCDNumber):
 			getattr(parent, key).display(f'{state}')
+		if type(getattr(parent, key)) is QFrame:
+			if getattr(parent, key).property("pin_invert") == True:
+				getattr(parent, key).setVisible(not state)
+			else:
+				getattr(parent, key).setVisible(state)
 		else:
 			getattr(parent, key).setText(f'{state}')
 

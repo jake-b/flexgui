@@ -1813,6 +1813,7 @@ def setup_hal(parent):
 	hal_lcds = []
 	hal_leds = []
 	hal_progressbar = []
+	hal_frames = []
 	parent.hal_io = {}
 	parent.hal_io_check = {}
 	parent.hal_io_int = {}
@@ -1977,6 +1978,12 @@ def setup_hal(parent):
 		elif child.property('function') == 'hal_led':
 			if isinstance(child, QLabel):
 				hal_leds.append(child)
+
+	children = parent.findChildren(QFrame)
+	for child in children:
+		if type(child) is QFrame:  # Exact class match, not subclass
+			print(f"Found {child}")
+			hal_frames.append(child)
 
 	##### HAL BUTTON & CHECKBOX #####
 	if len(hal_buttons) > 0:
@@ -2253,6 +2260,44 @@ def setup_hal(parent):
 					parent.hal_bool_labels[label_name] = [pin_name, true_text, false_text]
 				else:
 					parent.hal_readers[label_name] = pin_name
+
+	##### HAL FRAME #####
+	if len(hal_frames) > 0:
+		for frame in hal_frames:
+			frame_name = frame.objectName()
+			pin_name = frame.property('pin_name')
+			print(f"FRAME: {frame_name} with pin {pin_name}")
+			if pin_name != None:
+
+				hal_type = frame.property('hal_type') or "HAL_BIT"
+				hal_dir = frame.property('hal_dir') or "HAL_IN"
+				if hal_dir != 'HAL_IN':
+					frame.setEnabled(False)
+					msg = (f'{hal_dir} is not a valid\n'
+					'hal_dir for a HAL Frame,\n'
+					'only HAL_IN can be used for hal_dir.\n'
+					f'The {frame_name} Label will be disabled.')
+					dialogs.critical_msg_ok(parent, msg, 'Configuration Error!')
+					continue
+
+				if frame_name == pin_name:
+					frame.setEnabled(False)
+					msg = (f'The object name {frame_name}\n'
+						'can not be the same as the\n'
+						f'pin name {pin_name}.\n'
+						'The HAL object will not be created\n'
+						'and the label will be disabled.')
+					dialogs.critical_msg_ok(parent, msg, 'Configuration Error!')
+					continue
+
+				if None not in [pin_name, hal_type, hal_dir] and pin_name not in dir(parent):
+					hal_type = getattr(hal, f'{hal_type}')
+					hal_dir = getattr(hal, f'{hal_dir}')
+					setattr(parent, f'{pin_name}', parent.halcomp.newpin(pin_name, hal_type, hal_dir))
+					pin = getattr(parent, f'{pin_name}')
+				
+				print(f"Adding {pin_name} to hal_readers")
+				parent.hal_readers[frame_name] = pin_name
 
 	##### HAL MULTI STATE LABEL #####
 	if len(hal_ms_labels) > 0:
